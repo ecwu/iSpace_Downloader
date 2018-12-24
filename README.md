@@ -27,3 +27,7 @@ Easy way to download "all" course resources at iSpace (Moodle driven)
 4. Type your download intention ([Y/n])
   - If you don't program, it will terminate itself
 5. Download started, files will be download to `./download/[course_name]`
+
+# Licences
+
+MIT
