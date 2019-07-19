@@ -4,6 +4,7 @@ import cgi
 import os
 import sys
 import bs4
+import re
 
 post_data = {
     'username': 'YOUR_USERNAME_HERE',
@@ -13,6 +14,7 @@ post_data = {
 enable_file_type = ['document', 'powerpoint', 'spreadsheet', 'pdf', 'archive']
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
+mime_type_list = dict()
 
 def query_yes_no(question, default="yes"):
     """Ask a yes/no question via raw_input() and return their answer.
@@ -46,6 +48,12 @@ def query_yes_no(question, default="yes"):
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
 
+def init_mime_type_list():
+    global mime_type_list
+    with open('common_mime_type_list.txt', 'r') as f:
+        for row in f.read().splitlines():
+            filetype = row.split('\t')
+            mime_type_list[filetype[1]] = filetype[0]
 
 def get_course_list(session, url):
     if post_data['username'] is 'YOUR_USERNAME_HERE' and post_data['password'] is 'YOUR_PASSWORD_HERE':
@@ -103,14 +111,20 @@ def get_course_resources(session, url):
 
 
 def downloader(session, url, path):
+    global mime_type_list
     file1 = session.get(url)
-    file = open(os.path.join(path, cgi.parse_header(file1.headers['Content-Disposition'])[-1]['filename']), 'wb')
+    filename = cgi.parse_header(file1.headers['Content-Disposition'])[-1]['filename']
+    if re.search(r'\.\w+$', filename) is None:
+        filename += mime_type_list[file1.headers['Content-Type']]
+    file = open(os.path.join(path, filename), 'wb')
     file.write(file1.content)
-    print('Downloaded: ' + cgi.parse_header(file1.headers['Content-Disposition'])[-1]['filename'])
+    print('Downloaded: ' + filename)
     file.close()
 
 
 if __name__ == '__main__':
+    init_mime_type_list()
+
     requests_session = requests.Session()
     moodle_url = 'https://ispace.uic.edu.hk/login/index.php'
     my_course_list = get_course_list(requests_session, moodle_url)
