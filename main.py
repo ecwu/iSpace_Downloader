@@ -58,7 +58,7 @@ def init_mime_type_list():
 def get_course_list(session, url):
     if post_data['username'] is 'YOUR_USERNAME_HERE' and post_data['password'] is 'YOUR_PASSWORD_HERE':
         print("Default ID & Password not found.")
-        post_data['username'] = str(input('Your iSpace username:'))
+        post_data['username'] = str(input('Your iSpace username: '))
         post_data['password'] = str(getpass.getpass(prompt='Your iSpace password: ', stream=None))
     moodle = session.post(url, post_data)
     homepage = bs4.BeautifulSoup(moodle.text, 'html.parser')
@@ -94,7 +94,7 @@ def get_course_resources(session, url):
         resource_info = {'title': resource.text,
                          'url': resource.find('a').get('href'),
                          'type': resource.find('img').get('src').split('/')[-1].split('-')[0]
-                         }
+                        }
         if resource_info['type'] in enable_file_type:
             if resource_info['type'] not in resources_summary:
                 resources_summary[resource_info['type']] = 0
