@@ -76,7 +76,8 @@ def print_course_list(course_list):
 def get_course_resources(session, url):
     course = session.get(url)
     course_page = bs4.BeautifulSoup(course.text, 'html.parser')
-    print('Fetching Course: {:}'.format(course_page.find('title').text))
+    course_title = course_page.find('title').text[8:]
+    print('Fetching Course: {:}'.format(course_title))
     resources = course_page.find_all('div', class_='activityinstance')
     resources_summary = {}
     resources_list = []
@@ -96,7 +97,7 @@ def get_course_resources(session, url):
     print("Found {:} files:".format(file_counter))
     for file_type in resources_summary.keys():
         print("{:<15} | {:<3}".format(file_type, resources_summary[file_type]))
-    respond = {"course_title": course_page.find('title').text,
+    respond = {"course_title": course_title,
                "resources_list": resources_list}
     return respond
 
