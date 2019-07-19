@@ -4,6 +4,7 @@ import cgi
 import os
 import sys
 import bs4
+import re
 
 post_data = {
     'username': 'YOUR_USERNAME_HERE',
@@ -13,6 +14,7 @@ post_data = {
 enable_file_type = ['document', 'powerpoint', 'spreadsheet', 'pdf', 'archive']
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
+mime_type_list = dict()
 
 def query_yes_no(question, default="yes"):
     """Ask a yes/no question via raw_input() and return their answer.
@@ -46,11 +48,17 @@ def query_yes_no(question, default="yes"):
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
 
+def init_mime_type_list():
+    global mime_type_list
+    with open('common_mime_type_list.txt', 'r') as f:
+        for row in f.read().splitlines():
+            filetype = row.split('\t')
+            mime_type_list[filetype[1]] = filetype[0]
 
 def get_course_list(session, url):
     if post_data['username'] is 'YOUR_USERNAME_HERE' and post_data['password'] is 'YOUR_PASSWORD_HERE':
         print("Default ID & Password not found.")
-        post_data['username'] = str(input('Your iSpace username:'))
+        post_data['username'] = str(input('Your iSpace username: '))
         post_data['password'] = str(getpass.getpass(prompt='Your iSpace password: ', stream=None))
     moodle = session.post(url, post_data)
     homepage = bs4.BeautifulSoup(moodle.text, 'html.parser')
@@ -76,7 +84,8 @@ def print_course_list(course_list):
 def get_course_resources(session, url):
     course = session.get(url)
     course_page = bs4.BeautifulSoup(course.text, 'html.parser')
-    print('Fetching Course: {:}'.format(course_page.find('title').text))
+    course_title = course_page.find('title').text[8:]
+    print('Fetching Course: {:}'.format(course_title))
     resources = course_page.find_all('div', class_='activityinstance')
     resources_summary = {}
     resources_list = []
@@ -85,7 +94,7 @@ def get_course_resources(session, url):
         resource_info = {'title': resource.text,
                          'url': resource.find('a').get('href'),
                          'type': resource.find('img').get('src').split('/')[-1].split('-')[0]
-                         }
+                        }
         if resource_info['type'] in enable_file_type:
             if resource_info['type'] not in resources_summary:
                 resources_summary[resource_info['type']] = 0
@@ -96,20 +105,26 @@ def get_course_resources(session, url):
     print("Found {:} files:".format(file_counter))
     for file_type in resources_summary.keys():
         print("{:<15} | {:<3}".format(file_type, resources_summary[file_type]))
-    respond = {"course_title": course_page.find('title').text,
+    respond = {"course_title": course_title,
                "resources_list": resources_list}
     return respond
 
 
 def downloader(session, url, path):
+    global mime_type_list
     file1 = session.get(url)
-    file = open(os.path.join(path, cgi.parse_header(file1.headers['Content-Disposition'])[-1]['filename']), 'wb')
+    filename = cgi.parse_header(file1.headers['Content-Disposition'])[-1]['filename']
+    if re.search(r'\.\w+$', filename) is None:
+        filename += mime_type_list[file1.headers['Content-Type']]
+    file = open(os.path.join(path, filename), 'wb')
     file.write(file1.content)
-    print('Downloaded: ' + cgi.parse_header(file1.headers['Content-Disposition'])[-1]['filename'])
+    print('Downloaded: ' + filename)
     file.close()
 
 
 if __name__ == '__main__':
+    init_mime_type_list()
+
     requests_session = requests.Session()
     moodle_url = 'https://ispace.uic.edu.hk/login/index.php'
     my_course_list = get_course_list(requests_session, moodle_url)
