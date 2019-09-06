@@ -60,6 +60,11 @@ def get_course_list(session, url):
         print("Default ID & Password not found.")
         post_data['username'] = str(input('Your iSpace username: '))
         post_data['password'] = str(getpass.getpass(prompt='Your iSpace password: ', stream=None))
+    res = session.get(url)
+    html_bytes = res.text
+    soup = bs4.BeautifulSoup(html_bytes, 'html.parser')
+    token = soup.find('input', {'name': 'logintoken'})['value']
+    post_data['logintoken'] = token
     moodle = session.post(url, post_data)
     homepage = bs4.BeautifulSoup(moodle.text, 'html.parser')
 
